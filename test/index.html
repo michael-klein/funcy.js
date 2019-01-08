@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Parcel Sandbox</title>
+    <meta charset="UTF-8" />
+  </head>
+
+  <body>
+    <test-component></test-component>
+
+    <script type="module">
+      import {
+        defineComponent,
+        useReducer,
+        useState,
+        usePreactHtm
+      } from "../src/index.mjs";
+
+      //test
+      defineComponent("test-component", () => {
+        const [state1, dispatch] = useReducer((state, action) => {
+          if (action.type === "increment") {
+            return state + 1;
+          }
+        }, 4);
+        const [state2, setState] = useState(1);
+        const [html] = usePreactHtm();
+        return html`
+          <div class="app">
+            <button onClick=${() => dispatch({ type: "increment" })}>
+              ${state1}
+            </button>
+            <button onClick=${() => setState(state2 + 1)}>${state2}</button>
+          </div>
+        `;
+      });
+    </script>
+  </body>
+</html>
