@@ -1,4 +1,4 @@
-# functional-components
+# functional-components (uninspired name subject to change)
 
 This library wraps web components in a functional api with hooks (think React functional components).
 This is as of right now purely experimental.
