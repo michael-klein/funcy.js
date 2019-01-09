@@ -9,9 +9,9 @@ https://michael-klein.github.io/functional-components/examples/todo.html
 
 ## currently implemented hooks:
 
-* useReducer
-* useState
+* __useReducer__
+* __useState__
+* __useEffect__
 * useRenderer 
 * usePreactHtm
-* useEffect
 * useAttribute
