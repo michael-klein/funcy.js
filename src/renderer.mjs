@@ -5,29 +5,35 @@ const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const afterRenderQueue = [];
-const unqeue = () => {
-  rendering = true;
-  requestAnimationFrame(() => {
-    const element = renderQueue.shift();
-    currentElement = element;
-    if (!hookStateMap.has(element)) {
-      hookStateMap.set(element, []);
-    }
-    currentHookStateIndex = 0;
-    element.render();
-    const afterRenderQueueLength = afterRenderQueue.length;
-    let afterRenderQueueIndex = afterRenderQueueLength;
-    while (afterRenderQueueIndex--) {
-      const afterRenderQueueLocalIndex =
-        afterRenderQueueLength - afterRenderQueueIndex - 1;
-      afterRenderQueue[afterRenderQueueLocalIndex]();
-    }
-    afterRenderQueue.length = 0;
-    rendering = false;
-    if (renderQueue.length > 0) {
+const render = () => {
+  const start = Date.now();
+  const element = renderQueue.shift();
+  currentElement = element;
+  if (!hookStateMap.has(element)) {
+    hookStateMap.set(element, []);
+  }
+  currentHookStateIndex = 0;
+  element.render();
+  const afterRenderQueueLength = afterRenderQueue.length;
+  let afterRenderQueueIndex = afterRenderQueueLength;
+  while (afterRenderQueueIndex--) {
+    const afterRenderQueueLocalIndex =
+      afterRenderQueueLength - afterRenderQueueIndex - 1;
+    afterRenderQueue[afterRenderQueueLocalIndex]();
+  }
+  afterRenderQueue.length = 0;
+  rendering = false;
+  if (renderQueue.length > 0) {
+    if (Date.now() - start > 1000 / 60) {
+      requestAnimationFrame(unqeue);
+    } else {
       unqeue();
     }
-  });
+  }
+};
+const unqeue = () => {
+  rendering = true;
+  render();
 };
 
 export const queueRender = element => {
