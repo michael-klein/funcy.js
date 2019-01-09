@@ -2,7 +2,9 @@ import {
   getCurrentElement,
   getCurrentHookState,
   queueRender,
-  nextHook
+  queueAfterRender,
+  nextHook,
+  addPassableProps
 } from "./renderer.mjs";
 export const createHook = hook => (...args) => {
   nextHook();
@@ -36,7 +38,8 @@ export const useState = createHook(initialState => {
       })
   ];
 });
-export const useRenderer = createHook(renderer => {
+export const useRenderer = createHook(rendererIn => {
+  const renderer = getCurrentHookState(rendererIn);
   const element = getCurrentElement();
   element.renderer = renderer;
 });
@@ -47,4 +50,39 @@ export const usePreactHtm = createHook(() => {
     render(view, shadowRoot);
   });
   return [html];
+});
+export const useEffect = createHook((effect, values) => {
+  const state = getCurrentHookState({
+    effect,
+    values,
+    cleanUp: () => {}
+  });
+  let nothingChanged = false;
+  if (state.values !== values && state.values && state.values.length > 0) {
+    nothingChanged = true;
+    let index = state.values.length;
+
+    while (index--) {
+      if (values[index] !== state.values[index]) {
+        nothingChanged = false;
+        break;
+      }
+    }
+    state.values = values;
+  }
+  if (!nothingChanged) {
+    state.cleanUp();
+    queueAfterRender(() => {
+      const cleanUp = state.effect();
+      if (cleanUp) {
+        state.cleanUp = cleanUp;
+      }
+    });
+  }
+});
+export const usePassProps = createHook(props => {
+  let id = addPassableProps(props);
+  return {
+    "data-props": id
+  };
 });

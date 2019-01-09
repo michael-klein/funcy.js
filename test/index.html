@@ -13,7 +13,9 @@
         defineComponent,
         useReducer,
         useState,
-        usePreactHtm
+        usePreactHtm,
+        useEffect,
+        usePassProps
       } from "../src/index.mjs";
 
       //test
@@ -25,13 +27,26 @@
         }, 4);
         const [state2, setState] = useState(1);
         const [html] = usePreactHtm();
+        useEffect(() => {
+          console.log("hi")
+          return () => console.log("ho")
+        },[state1])
+        const props = usePassProps({sum:state1+state2})
         return html`
           <div class="app">
+            <test-component2 ...${props}></test-component2>
             <button onClick=${() => dispatch({ type: "increment" })}>
               ${state1}
             </button>
             <button onClick=${() => setState(state2 + 1)}>${state2}</button>
           </div>
+        `;
+      });
+      defineComponent("test-component2", (props) => {
+        const {sum} = props;
+        const [html] = usePreactHtm();
+        return html`
+          <div>${sum}</div>
         `;
       });
     </script>

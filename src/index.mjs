@@ -1,10 +1,17 @@
-import { queueRender, defaultRenderer } from "./renderer.mjs";
-export { useReducer, useState, usePreactHtm } from "./hooks.mjs";
+import { queueRender, defaultRenderer, getPassableProps } from "./renderer.mjs";
+export {
+  useReducer,
+  useState,
+  usePreactHtm,
+  useEffect,
+  usePassProps
+} from "./hooks.mjs";
 const componentMap = new Map();
-function addComponent(name) {
+function addComponent(name, options) {
   class Component extends HTMLElement {
     constructor() {
       super();
+      this.props = {};
       this.renderer = defaultRenderer;
     }
     connectedCallback() {
@@ -14,9 +21,29 @@ function addComponent(name) {
       }
     }
     render() {
-      this._shadowRoot.innerHTML = "";
-      const view = componentMap.get(name)();
+      const propsId = this.getAttribute("data-props");
+      if (propsId) {
+        this.props = getPassableProps(propsId);
+        this.skipQueue = true;
+        this.removeAttribute("data-props");
+      }
+      const view = componentMap.get(name)(this.props);
       this.renderer(view, this._shadowRoot);
+    }
+    attributeChangedCallback(attrName, oldVal, newVal) {
+      if (!this.skipQueue || attrName !== "data-props") {
+        queueRender(this);
+      }
+      this.skipQueue = false;
+    }
+    static get observedAttributes() {
+      const observedAttributes = ["data-props"];
+      if (options.observedAttributes) {
+        observedAttributes = observedAttributes.concat(
+          options.observedAttributes
+        );
+      }
+      return [observedAttributes];
     }
   }
 
@@ -26,10 +53,10 @@ function addComponent(name) {
     console.warn(`Component ${name} was already defined.`);
   }
 }
-export const defineComponent = (name, component) => {
+export const defineComponent = (name, component, options = {}) => {
   if (!componentMap.has(name)) {
     componentMap.set(name, component);
-    addComponent(name);
+    addComponent(name, options);
   } else {
     console.warn(`Component ${name} was already defined.`);
   }
