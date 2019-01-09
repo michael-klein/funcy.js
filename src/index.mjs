@@ -1,10 +1,10 @@
 import { queueRender, defaultRenderer, getPassableProps } from "./renderer.mjs";
+export { prps } from "./renderer.mjs";
 export {
   useReducer,
   useState,
   usePreactHtm,
   useEffect,
-  usePassProps,
   useAttribute
 } from "./hooks.mjs";
 const componentMap = new Map();
@@ -30,8 +30,12 @@ function addComponent(name, options) {
       }
       const view = componentMap.get(name)(this.props);
       this.renderer(view, this._shadowRoot);
+      this.init = false;
     }
     attributeChangedCallback(attrName, oldVal, newVal) {
+      if (this.init) {
+        return;
+      }
       if (!this.skipQueue && oldVal !== newVal) {
         queueRender(this);
       }
@@ -50,7 +54,6 @@ function addComponent(name, options) {
   customElements.define(name, Component);
 }
 export const defineComponent = (name, component, options = {}) => {
-  console.log(name);
   if (!componentMap.has(name)) {
     componentMap.set(name, component);
     addComponent(name, options);

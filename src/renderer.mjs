@@ -5,9 +5,8 @@ const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const afterRenderQueue = [];
-const render = () => {
+const render = element => {
   const start = Date.now();
-  const element = renderQueue.shift();
   currentElement = element;
   if (!hookStateMap.has(element)) {
     hookStateMap.set(element, []);
@@ -22,20 +21,17 @@ const render = () => {
     afterRenderQueue[afterRenderQueueLocalIndex]();
   }
   afterRenderQueue.length = 0;
-  rendering = false;
-  if (renderQueue.length > 0) {
-    if (Date.now() - start > 1000 / 60) {
-      requestAnimationFrame(unqeue);
-    } else {
-      unqeue();
-    }
-  }
 };
 const unqeue = () => {
+  const queue = [...renderQueue];
+  renderQueue.length = 0;
   rendering = true;
-  render();
+  requestAnimationFrame(() => {
+    queue.forEach(element => render(element));
+    rendering = false;
+    if (renderQueue.length > 0) unqeue();
+  });
 };
-
 export const queueRender = element => {
   if (renderQueue.indexOf(element) === -1) {
     renderQueue.push(element);
@@ -49,15 +45,22 @@ export const getPassableProps = id => {
   passPropsMap.delete(id);
   return props;
 };
+let passPropsId = 100000;
 export const addPassableProps = props => {
-  let id = Date.now().toString(16);
+  let id = passPropsId.toString(16);
+  passPropsId++;
   if (id.length % 2) {
     id = "0" + id;
   }
   passPropsMap.set(id, props);
   return id;
 };
-
+export const prps = props => {
+  let id = addPassableProps(props);
+  return {
+    "data-props": id
+  };
+};
 export const nextHook = () => {
   currentHookStateIndex = currentHookStateIndex + 1;
 };

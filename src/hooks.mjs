@@ -3,8 +3,7 @@ import {
   getCurrentHookState,
   queueRender,
   queueAfterRender,
-  nextHook,
-  addPassableProps
+  nextHook
 } from "./renderer.mjs";
 export const createHook = hook => (...args) => {
   nextHook();
