@@ -79,12 +79,6 @@ export const useEffect = createHook((effect, values) => {
     });
   }
 });
-export const usePassProps = createHook(props => {
-  let id = addPassableProps(props);
-  return {
-    "data-props": id
-  };
-});
 export const useAttribute = createHook(attributeName => {
   const element = getCurrentElement();
   const attributeValue = element.getAttribute(attributeName);
