@@ -4,7 +4,8 @@ export {
   useState,
   usePreactHtm,
   useEffect,
-  usePassProps
+  usePassProps,
+  useAttribute
 } from "./hooks.mjs";
 const componentMap = new Map();
 function addComponent(name, options) {
@@ -31,29 +32,25 @@ function addComponent(name, options) {
       this.renderer(view, this._shadowRoot);
     }
     attributeChangedCallback(attrName, oldVal, newVal) {
-      if (!this.skipQueue || attrName !== "data-props") {
+      if (!this.skipQueue && oldVal !== newVal) {
         queueRender(this);
       }
       this.skipQueue = false;
     }
     static get observedAttributes() {
-      const observedAttributes = ["data-props"];
+      let observedAttributes = ["data-props"];
       if (options.observedAttributes) {
         observedAttributes = observedAttributes.concat(
           options.observedAttributes
         );
       }
-      return [observedAttributes];
+      return observedAttributes;
     }
   }
-
-  try {
-    customElements.define(name, Component);
-  } catch (e) {
-    console.warn(`Component ${name} was already defined.`);
-  }
+  customElements.define(name, Component);
 }
 export const defineComponent = (name, component, options = {}) => {
+  console.log(name);
   if (!componentMap.has(name)) {
     componentMap.set(name, component);
     addComponent(name, options);

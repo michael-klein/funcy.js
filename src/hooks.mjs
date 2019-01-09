@@ -86,3 +86,14 @@ export const usePassProps = createHook(props => {
     "data-props": id
   };
 });
+export const useAttribute = createHook(attributeName => {
+  const element = getCurrentElement();
+  const attributeValue = element.getAttribute(attributeName);
+  return [
+    attributeValue,
+    value => {
+      element.skipQueue = true;
+      element.setAttribute(attributeName, value);
+    }
+  ];
+});

@@ -6,7 +6,7 @@
   </head>
 
   <body>
-    <test-component></test-component>
+    <test-component testattribute="testattributevalue"></test-component>
 
     <script type="module">
       import {
@@ -15,7 +15,8 @@
         useState,
         usePreactHtm,
         useEffect,
-        usePassProps
+        usePassProps,
+        useAttribute
       } from "../src/index.mjs";
 
       //test
@@ -31,7 +32,10 @@
           console.log("hi")
           return () => console.log("ho")
         },[state1])
-        const props = usePassProps({sum:state1+state2})
+        const props = usePassProps({sum:state1+state2});
+        const [testAttribute,setTestAttribute] = useAttribute('testattribute')
+        console.log(testAttribute);
+        setTestAttribute(testAttribute + "2");
         return html`
           <div class="app">
             <test-component2 ...${props}></test-component2>
@@ -41,6 +45,8 @@
             <button onClick=${() => setState(state2 + 1)}>${state2}</button>
           </div>
         `;
+      },{
+        observedAttributes: ['testattribute']
       });
       defineComponent("test-component2", (props) => {
         const {sum} = props;
