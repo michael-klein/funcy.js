@@ -6,3 +6,12 @@ This is as of right now purely experimental.
 Proper documentation will follow. For now you may look at the examples folder and this:
 
 https://michael-klein.github.io/functional-components/examples/todo.html
+
+## currently implemented hooks:
+
+* useReducer
+* useState
+* useRenderer 
+* usePreactHtm
+* useEffect
+* useAttribute
