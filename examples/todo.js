@@ -3,12 +3,32 @@ import {
   useReducer,
   useState,
   usePreactHtm,
-  useEffect,
+  useCSS,
   prps,
   useAttribute
 } from "../src/index.mjs";
 
 defineComponent("todo-list", () => {
+  const css = useCSS;
+  css`
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    button {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+      align-items: center;
+      color: white;
+      background: #949494;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 4px;
+      padding: 10px;
+      border: 1px solid #d0d0d0;
+    }
+  `;
   const [currentItemId, setCurrentItemId] = useState(0);
   const [items, setItems] = useState([
     {
@@ -69,6 +89,40 @@ defineComponent("todo-item", ({ done, text, toggle, setText, removeTodo }) => {
   const checkBoxclicked = e => {
     toggle();
   };
+  const css = useCSS;
+  css`
+    li {
+      margin-bottom: 10px;
+      align-items: center;
+      display: flex;
+      background: #dfdfdf;
+      border-radius: 4px;
+      padding: 10px;
+      box-shadow: 0px 2px 32px 0px rgba(0, 0, 0, 0.18);
+      border: 1px solid #d0d0d0;
+    }
+    input,
+    button {
+      margin: 0;
+      border: none;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+    }
+    button,
+    input[type="checkbox"] {
+      cursor: pointer;
+    }
+    input[type="text"] {
+      background: none;
+    }
+    input[type="text"]:focus {
+      outline: none;
+    }
+    input[type="checkbox"] {
+      margin-right: 10px;
+    }
+  `;
   return html`
     <li>
       <input
@@ -91,11 +145,18 @@ defineComponent("todo-item", ({ done, text, toggle, setText, removeTodo }) => {
 defineComponent(
   "todo-header",
   () => {
+    const css = useCSS;
+    css`
+      header {
+        text-align: center;
+        color: gray;
+      }
+    `;
     const [html] = usePreactHtm();
     const [total] = useAttribute("total");
     const [done] = useAttribute("done");
     return html`
-      <header>${done}/${total} todos finished</header>
+      <header>${done}/${total} todos finished!</header>
     `;
   },
   {

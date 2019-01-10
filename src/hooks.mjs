@@ -90,3 +90,30 @@ export const useAttribute = createHook(attributeName => {
     }
   ];
 });
+
+export const useCSS = createHook((parts, ...slots) => {
+  let styles;
+  if (parts instanceof Array) {
+    styles = parts
+      .map((part, index) => {
+        if (slots[index]) {
+          return part + slots[index];
+        } else {
+          return part;
+        }
+      })
+      .join("");
+  } else {
+    styles = parts;
+  }
+  styles = styles.replace(/ +(?= )/g, "").replace(/\n/g, "");
+  const element = getCurrentElement();
+  const style = document.createElement("style");
+  style.innerHTML = styles;
+  useEffect(() => {
+    element._shadowRoot.appendChild(style);
+    return () => {
+      element._shadowRoot.removeChild(style);
+    };
+  });
+});
