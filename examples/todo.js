@@ -4,9 +4,9 @@ import {
   useState,
   useCSS,
   prps,
-  useAttribute
-} from "../src/index.mjs";
-import { usePreactHtm } from "../src/hooks/usePreactHtm.mjs";
+  useAttribute,
+  usePreactHtm
+} from "../dist/full.mjs";
 
 defineComponent("todo-list", () => {
   const css = useCSS;

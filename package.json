@@ -1,0 +1,33 @@
+{
+  "name": "funcy.js",
+  "version": "0.3.6-alpha",
+  "description": "A functional web-components wrapper",
+  "main": "dist/core.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michael-klein/functional-components.git"
+  },
+  "keywords": [
+    "functional",
+    "hooks",
+    "react",
+    "web-components",
+    "webcomponents",
+    "preact"
+  ],
+  "author": "Michael Klein",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/michael-klein/functional-components/issues"
+  },
+  "homepage": "https://github.com/michael-klein/functional-components#readme",
+  "dependencies": {
+    "htm": "^2.0.0"
+  }
+}
