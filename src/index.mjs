@@ -6,7 +6,8 @@ export {
   usePreactHtm,
   useEffect,
   useAttribute,
-  useCSS
+  useCSS,
+  useExposeMethod
 } from "./hooks.mjs";
 const componentMap = new Map();
 function addComponent(name, options) {

@@ -90,7 +90,6 @@ export const useAttribute = createHook(attributeName => {
     }
   ];
 });
-
 export const useCSS = createHook((parts, ...slots) => {
   let styles;
   if (parts instanceof Array) {
@@ -116,4 +115,8 @@ export const useCSS = createHook((parts, ...slots) => {
       element._shadowRoot.removeChild(style);
     };
   });
+});
+export const useExposeMethod = createHook((name, method) => {
+  const element = getCurrentElement();
+  element[name] = (...args) => method(...args);
 });

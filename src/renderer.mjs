@@ -1,17 +1,16 @@
 let currentElement;
-let currentHookStateIndex = -1;
+let currentHookStateIndex = undefined;
 const hookStateMap = new Map();
 const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const afterRenderQueue = [];
 const render = element => {
-  const start = Date.now();
   currentElement = element;
   if (!hookStateMap.has(element)) {
     hookStateMap.set(element, []);
   }
-  currentHookStateIndex = 0;
+  currentHookStateIndex = -1;
   element.render();
   const afterRenderQueueLength = afterRenderQueue.length;
   let afterRenderQueueIndex = afterRenderQueueLength;
@@ -21,6 +20,7 @@ const render = element => {
     afterRenderQueue[afterRenderQueueLocalIndex]();
   }
   afterRenderQueue.length = 0;
+  currentHookStateIndex = undefined;
 };
 const unqeue = () => {
   const queue = [...renderQueue];
@@ -62,6 +62,9 @@ export const prps = props => {
   };
 };
 export const nextHook = () => {
+  if (currentHookStateIndex === undefined) {
+    throw new Error("Using hooks outside of a component is forbidden!");
+  }
   currentHookStateIndex = currentHookStateIndex + 1;
 };
 

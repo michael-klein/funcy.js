@@ -1,13 +1,12 @@
 import {
   defineComponent,
-  useReducer,
+  useExposeMethod,
   useState,
   usePreactHtm,
   useCSS,
   prps,
   useAttribute
 } from "../src/index.mjs";
-
 defineComponent("todo-list", () => {
   const css = useCSS;
   css`
@@ -52,6 +51,11 @@ defineComponent("todo-list", () => {
   const total = items.length;
   const numDone = items.filter(item => item.done).length;
   sorted.sort(item => (item.done ? 1 : -1));
+  useExposeMethod("logTodos", () =>
+    items.forEach(({ text, done }) => {
+      console.log(`item: ${text}, state: ${done}`);
+    })
+  );
   return html`
     <div>
       <todo-header total=${total} done=${numDone}></todo-header>
