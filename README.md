@@ -15,9 +15,7 @@ funcy.js seeks to provide a functional way of defining web components, very much
 
 Proper documentation will follow soon. For now you may look at todo example in the examples folder or the following codepen:
 
-
-
-https://michael-klein.github.io/functional-components/examples/todo.html
+https://codepen.io/michael-klein/pen/QzZzdO
 
 #### currently implemented hooks:
 
