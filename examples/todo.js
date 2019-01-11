@@ -2,11 +2,11 @@ import {
   defineComponent,
   useExposeMethod,
   useState,
-  usePreactHtm,
   useCSS,
   prps,
   useAttribute
 } from "../src/index.mjs";
+import { usePreactHtm } from "../src/hooks/usePreactHtm.mjs";
 
 defineComponent("todo-list", () => {
   const css = useCSS;
@@ -59,6 +59,7 @@ defineComponent("todo-list", () => {
   );
   return html`
     <div>
+      <slot name="hello"></slot>
       <todo-header total=${total} done=${numDone}></todo-header>
       <ul>
         ${
