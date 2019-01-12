@@ -7,7 +7,7 @@
 
 ### Why 'funcy.js'?
 
-Naming things is hard and 'funcy.js' seemed like a [fun](http://www.badum-tish.com/), recognizable name.
+Naming things is hard and 'funcy.js' (pronounced like funky.js) seemed like a [fun](http://www.badum-tish.com/), recognizable name.
 
 ### What is it?
 
