@@ -2,9 +2,9 @@
 <p align="center">
   <img src="https://i.imgur.com/HlOLFhy.png" width="300" alt="funcyjs logo">
 </p>
-<h1 align="center">
+<p align="center">
   A functional web-components wrapper
-</h1>
+</p>
 <p align="center">
   <img src="https://i.imgur.com/ioHwn7m.png" width="572" alt="example of code">
 </p>
