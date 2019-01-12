@@ -6,7 +6,7 @@
   A functional web-components wrapper
 </h1>
 <p align="center">
-  <img src="https://i.imgur.com/1nJ9kJd.png" width="572" alt="example of code">
+  <img src="https://i.imgur.com/ioHwn7m.png" width="572" alt="example of code">
 </p>
 
 ### Why 'funcy.js'?
