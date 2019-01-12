@@ -1,6 +1,6 @@
 {
   "name": "funcy-components",
-  "version": "0.3.85-alpha",
+  "version": "0.3.9-alpha",
   "description": "A functional web-components wrapper",
   "main": "dist/core.js",
   "directories": {
