@@ -1,5 +1,5 @@
 {
-  "name": "funcy.js",
+  "name": "funcy-components",
   "version": "0.3.7-alpha",
   "description": "A functional web-components wrapper",
   "main": "dist/core.js",
