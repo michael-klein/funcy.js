@@ -17,6 +17,10 @@ Proper documentation will follow soon. For now you may look at todo example in t
 
 https://codepen.io/michael-klein/pen/xmQZBx
 
+### Browser Compatibility
+
+The library is published is not transpiled for browser compatibility and does not contain any polyfills. As such you can use it as an es6 module in the latest version of chrome and other browsers that implement the latest JavaScript features including web components v1, but it will fail horribly anywhere else, so you will have to provide polyfills/transpilation if you want to use this in more browsers.
+
 ### Installation
 
 Using npm:
