@@ -81,7 +81,38 @@ interface DefineComponentOptions {
 
 #### Props
 
-Normally, you can only pass data to custom elements via attributes, which only support string values.
+Normally, you can only pass data to custom elements via attributes, which only support string values. funcyjs enables you to pass prps between funcyjs components using thr prps method like this:
+```js
+defineComponent(
+  "prop-sender",
+  () => {
+    const html = usePreactHtm();
+    return html`
+      <prop-receiver ...${prps({greeting: "hello World"})}></prop-receiver>
+    `;
+  }
+);
+defineComponent(
+  "prop-receiver",
+  (props) => {
+    const html = usePreactHtm();
+    return html`
+      <div>
+        ${props.greeting}
+      </div>
+    `;
+  }
+);
+```
+:pencil2:[pen](https://codepen.io/michael-klein/pen/VqVdpp)
+
+prps will actually return an object like this:
+```js
+{
+  "data-props": propsId
+}
+```
+You can spread it on the component with htm or just set a "data-props" attribute manually if you just use DOM. Internally, funcyjs listens to changes to the data-props argument and qeueus re-renders if the passed props change.
 
 #### Hooks: The basics
 
