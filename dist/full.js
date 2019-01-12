@@ -308,6 +308,7 @@
 
   exports.defineComponent = defineComponent;
   exports.prps = prps;
+  exports.createHook = createHook;
   exports.useReducer = useReducer;
   exports.useState = useState;
   exports.useEffect = useEffect;

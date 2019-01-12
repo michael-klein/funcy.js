@@ -300,5 +300,5 @@ const usePreactHtm = createHook(() => {
   return [V];
 });
 
-export { defineComponent, prps, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState, usePreactHtm };
+export { defineComponent, prps, createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState, usePreactHtm };
 //# sourceMappingURL=full.mjs.map

@@ -1,5 +1,5 @@
 export { defineComponent } from "./lib/component.mjs";
-export { prps } from "./lib/renderer.mjs";
+export { prps, createHook } from "./lib/renderer.mjs";
 export {
   useReducer,
   useState,
