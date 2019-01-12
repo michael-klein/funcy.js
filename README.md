@@ -47,11 +47,15 @@ import {defineComponent} from "https://unpkg.com/funcy-components/dist/full.min.
 
 #### currently implemented hooks:
 
+core hooks:
 * __useReducer__
 * __useState__
 * __useEffect__
 * useRenderer 
-* usePreactHtm
 * useAttribute
 * useCSS
 * useExposeMethod
+* useConnectedState
+
+other (only present in full bundles):
+* usePreactHtm
