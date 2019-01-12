@@ -3,7 +3,7 @@
   <img src="https://i.imgur.com/HlOLFhy.png" width="300" alt="funcyjs logo">
 </p>
 <h3 align="center">
-  A functional web-components wrapper
+  A functional web-components wrapper <img src="https://img.shields.io/npm/v/funcy-components.svg">
 </h3>
 <p align="center">
   <img src="https://i.imgur.com/ioHwn7m.png" width="572" alt="example of code">
