@@ -5,24 +5,34 @@ function addComponent(name, options) {
   class Component extends HTMLElement {
     constructor() {
       super();
-      this.props = {};
-      this.renderer = defaultRenderer;
+      this._props = {};
+      this._renderer = defaultRenderer;
+      this._isConnected = false;
     }
     connectedCallback() {
       if (!this._shadowRoot) {
         this._shadowRoot = this.attachShadow({ mode: "open" });
+      }
+      if (!this._isConnected) {
+        this._isConnected = true;
         queueRender(this);
+      }
+    }
+    disconnectedCallback() {
+      if (this._isConnected) {
+        this._isConnected = false;
+        queueRender(this, true);
       }
     }
     render() {
       const propsId = this.getAttribute("data-props");
       if (propsId) {
-        this.props = getPassableProps(propsId);
+        this._props = getPassableProps(propsId);
         this.skipQueue = true;
         this.removeAttribute("data-props");
       }
-      const view = componentMap.get(name)(this.props);
-      this.renderer(view, this._shadowRoot);
+      const view = componentMap.get(name)(this._props);
+      this._renderer(view, this._shadowRoot);
       this.init = false;
     }
     attributeChangedCallback(attrName, oldVal, newVal) {

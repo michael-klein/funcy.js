@@ -32,8 +32,11 @@ const unqeue = () => {
     if (renderQueue.length > 0) unqeue();
   });
 };
-export const queueRender = element => {
-  if (renderQueue.indexOf(element) === -1) {
+export const queueRender = (element, force) => {
+  if (
+    (renderQueue.indexOf(element) === -1 && element._isConnected === true) ||
+    force
+  ) {
     renderQueue.push(element);
   }
   if (!rendering) {
@@ -67,7 +70,10 @@ export const nextHook = () => {
   }
   currentHookStateIndex = currentHookStateIndex + 1;
 };
-
+export const createHook = hook => (...args) => {
+  nextHook();
+  return hook(...args);
+};
 export const queueAfterRender = callback => {
   afterRenderQueue.push(callback);
 };

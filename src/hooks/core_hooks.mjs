@@ -3,12 +3,8 @@ import {
   getCurrentHookState,
   queueRender,
   queueAfterRender,
-  nextHook
-} from "./renderer.mjs";
-export const createHook = hook => (...args) => {
-  nextHook();
-  return hook(...args);
-};
+  createHook
+} from "../lib/renderer.mjs";
 
 export const useHostElement = createHook(() => {
   return getCurrentElement();
@@ -47,7 +43,7 @@ export const useState = createHook(initialState => {
 export const useRenderer = createHook(rendererIn => {
   const renderer = getCurrentHookState(rendererIn);
   const element = useHostElement();
-  element.renderer = renderer;
+  element._renderer = renderer;
 });
 export const useEffect = createHook((effect, values) => {
   const state = getCurrentHookState({
@@ -55,27 +51,33 @@ export const useEffect = createHook((effect, values) => {
     values,
     cleanUp: () => {}
   });
-  let nothingChanged = false;
-  if (state.values !== values && state.values && state.values.length > 0) {
-    nothingChanged = true;
-    let index = state.values.length;
+  const isConnected = useConnectedState();
+  if (isConnected) {
+    let nothingChanged = false;
+    if (state.values !== values && state.values && state.values.length > 0) {
+      nothingChanged = true;
+      let index = state.values.length;
 
-    while (index--) {
-      if (values[index] !== state.values[index]) {
-        nothingChanged = false;
-        break;
+      while (index--) {
+        if (values[index] !== state.values[index]) {
+          nothingChanged = false;
+          break;
+        }
       }
+      state.values = values;
     }
-    state.values = values;
-  }
-  if (!nothingChanged) {
+    if (!nothingChanged) {
+      state.cleanUp();
+      queueAfterRender(() => {
+        const cleanUp = state.effect();
+        if (cleanUp) {
+          state.cleanUp = cleanUp;
+        }
+      });
+    }
+  } else {
     state.cleanUp();
-    queueAfterRender(() => {
-      const cleanUp = state.effect();
-      if (cleanUp) {
-        state.cleanUp = cleanUp;
-      }
-    });
+    state.cleanUp = () => {};
   }
 });
 export const useAttribute = createHook(attributeName => {
@@ -118,4 +120,8 @@ export const useCSS = createHook((parts, ...slots) => {
 export const useExposeMethod = createHook((name, method) => {
   const element = useHostElement();
   element[name] = (...args) => method(...args);
+});
+export const useConnectedState = createHook(() => {
+  const element = useHostElement();
+  return element._isConnected;
 });

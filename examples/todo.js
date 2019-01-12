@@ -6,7 +6,7 @@ import {
   prps,
   useAttribute,
   usePreactHtm
-} from "../dist/full.mjs";
+} from "../src/export_all.mjs";
 
 defineComponent("todo-list", () => {
   const css = useCSS;

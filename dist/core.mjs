@@ -32,8 +32,11 @@ const unqeue = () => {
     if (renderQueue.length > 0) unqeue();
   });
 };
-const queueRender = element => {
-  if (renderQueue.indexOf(element) === -1) {
+const queueRender = (element, force) => {
+  if (
+    (renderQueue.indexOf(element) === -1 && element._isConnected === true) ||
+    force
+  ) {
     renderQueue.push(element);
   }
   if (!rendering) {
@@ -67,7 +70,10 @@ const nextHook = () => {
   }
   currentHookStateIndex = currentHookStateIndex + 1;
 };
-
+const createHook = hook => (...args) => {
+  nextHook();
+  return hook(...args);
+};
 const queueAfterRender = callback => {
   afterRenderQueue.push(callback);
 };
@@ -105,24 +111,34 @@ function addComponent(name, options) {
   class Component extends HTMLElement {
     constructor() {
       super();
-      this.props = {};
-      this.renderer = defaultRenderer;
+      this._props = {};
+      this._renderer = defaultRenderer;
+      this._isConnected = false;
     }
     connectedCallback() {
       if (!this._shadowRoot) {
         this._shadowRoot = this.attachShadow({ mode: "open" });
+      }
+      if (!this._isConnected) {
+        this._isConnected = true;
         queueRender(this);
+      }
+    }
+    disconnectedCallback() {
+      if (this._isConnected) {
+        this._isConnected = false;
+        queueRender(this, true);
       }
     }
     render() {
       const propsId = this.getAttribute("data-props");
       if (propsId) {
-        this.props = getPassableProps(propsId);
+        this._props = getPassableProps(propsId);
         this.skipQueue = true;
         this.removeAttribute("data-props");
       }
-      const view = componentMap.get(name)(this.props);
-      this.renderer(view, this._shadowRoot);
+      const view = componentMap.get(name)(this._props);
+      this._renderer(view, this._shadowRoot);
       this.init = false;
     }
     attributeChangedCallback(attrName, oldVal, newVal) {
@@ -153,11 +169,6 @@ const defineComponent = (name, component, options = {}) => {
   } else {
     console.warn(`Component ${name} was already defined.`);
   }
-};
-
-const createHook = hook => (...args) => {
-  nextHook();
-  return hook(...args);
 };
 
 const useHostElement = createHook(() => {
@@ -197,7 +208,7 @@ const useState = createHook(initialState => {
 const useRenderer = createHook(rendererIn => {
   const renderer = getCurrentHookState(rendererIn);
   const element = useHostElement();
-  element.renderer = renderer;
+  element._renderer = renderer;
 });
 const useEffect = createHook((effect, values) => {
   const state = getCurrentHookState({
@@ -205,27 +216,33 @@ const useEffect = createHook((effect, values) => {
     values,
     cleanUp: () => {}
   });
-  let nothingChanged = false;
-  if (state.values !== values && state.values && state.values.length > 0) {
-    nothingChanged = true;
-    let index = state.values.length;
+  const isConnected = useConnectedState();
+  if (isConnected) {
+    let nothingChanged = false;
+    if (state.values !== values && state.values && state.values.length > 0) {
+      nothingChanged = true;
+      let index = state.values.length;
 
-    while (index--) {
-      if (values[index] !== state.values[index]) {
-        nothingChanged = false;
-        break;
+      while (index--) {
+        if (values[index] !== state.values[index]) {
+          nothingChanged = false;
+          break;
+        }
       }
+      state.values = values;
     }
-    state.values = values;
-  }
-  if (!nothingChanged) {
+    if (!nothingChanged) {
+      state.cleanUp();
+      queueAfterRender(() => {
+        const cleanUp = state.effect();
+        if (cleanUp) {
+          state.cleanUp = cleanUp;
+        }
+      });
+    }
+  } else {
     state.cleanUp();
-    queueAfterRender(() => {
-      const cleanUp = state.effect();
-      if (cleanUp) {
-        state.cleanUp = cleanUp;
-      }
-    });
+    state.cleanUp = () => {};
   }
 });
 const useAttribute = createHook(attributeName => {
@@ -269,5 +286,10 @@ const useExposeMethod = createHook((name, method) => {
   const element = useHostElement();
   element[name] = (...args) => method(...args);
 });
+const useConnectedState = createHook(() => {
+  const element = useHostElement();
+  return element._isConnected;
+});
 
-export { defineComponent, prps, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, createHook };
+export { defineComponent, prps, createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState };
+//# sourceMappingURL=core.mjs.map

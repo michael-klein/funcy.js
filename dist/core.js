@@ -1,8 +1,8 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (factory((global.funcyjs = {})));
-}(this, (function (exports) { 'use strict';
+  (global = global || self, factory(global.funcyjs = {}));
+}(this, function (exports) { 'use strict';
 
   let currentElement;
   let currentHookStateIndex = undefined;
@@ -38,8 +38,11 @@
       if (renderQueue.length > 0) unqeue();
     });
   };
-  const queueRender = element => {
-    if (renderQueue.indexOf(element) === -1) {
+  const queueRender = (element, force) => {
+    if (
+      (renderQueue.indexOf(element) === -1 && element._isConnected === true) ||
+      force
+    ) {
       renderQueue.push(element);
     }
     if (!rendering) {
@@ -73,7 +76,10 @@
     }
     currentHookStateIndex = currentHookStateIndex + 1;
   };
-
+  const createHook = hook => (...args) => {
+    nextHook();
+    return hook(...args);
+  };
   const queueAfterRender = callback => {
     afterRenderQueue.push(callback);
   };
@@ -111,24 +117,34 @@
     class Component extends HTMLElement {
       constructor() {
         super();
-        this.props = {};
-        this.renderer = defaultRenderer;
+        this._props = {};
+        this._renderer = defaultRenderer;
+        this._isConnected = false;
       }
       connectedCallback() {
         if (!this._shadowRoot) {
           this._shadowRoot = this.attachShadow({ mode: "open" });
+        }
+        if (!this._isConnected) {
+          this._isConnected = true;
           queueRender(this);
+        }
+      }
+      disconnectedCallback() {
+        if (this._isConnected) {
+          this._isConnected = false;
+          queueRender(this, true);
         }
       }
       render() {
         const propsId = this.getAttribute("data-props");
         if (propsId) {
-          this.props = getPassableProps(propsId);
+          this._props = getPassableProps(propsId);
           this.skipQueue = true;
           this.removeAttribute("data-props");
         }
-        const view = componentMap.get(name)(this.props);
-        this.renderer(view, this._shadowRoot);
+        const view = componentMap.get(name)(this._props);
+        this._renderer(view, this._shadowRoot);
         this.init = false;
       }
       attributeChangedCallback(attrName, oldVal, newVal) {
@@ -159,11 +175,6 @@
     } else {
       console.warn(`Component ${name} was already defined.`);
     }
-  };
-
-  const createHook = hook => (...args) => {
-    nextHook();
-    return hook(...args);
   };
 
   const useHostElement = createHook(() => {
@@ -203,7 +214,7 @@
   const useRenderer = createHook(rendererIn => {
     const renderer = getCurrentHookState(rendererIn);
     const element = useHostElement();
-    element.renderer = renderer;
+    element._renderer = renderer;
   });
   const useEffect = createHook((effect, values) => {
     const state = getCurrentHookState({
@@ -211,27 +222,33 @@
       values,
       cleanUp: () => {}
     });
-    let nothingChanged = false;
-    if (state.values !== values && state.values && state.values.length > 0) {
-      nothingChanged = true;
-      let index = state.values.length;
+    const isConnected = useConnectedState();
+    if (isConnected) {
+      let nothingChanged = false;
+      if (state.values !== values && state.values && state.values.length > 0) {
+        nothingChanged = true;
+        let index = state.values.length;
 
-      while (index--) {
-        if (values[index] !== state.values[index]) {
-          nothingChanged = false;
-          break;
+        while (index--) {
+          if (values[index] !== state.values[index]) {
+            nothingChanged = false;
+            break;
+          }
         }
+        state.values = values;
       }
-      state.values = values;
-    }
-    if (!nothingChanged) {
+      if (!nothingChanged) {
+        state.cleanUp();
+        queueAfterRender(() => {
+          const cleanUp = state.effect();
+          if (cleanUp) {
+            state.cleanUp = cleanUp;
+          }
+        });
+      }
+    } else {
       state.cleanUp();
-      queueAfterRender(() => {
-        const cleanUp = state.effect();
-        if (cleanUp) {
-          state.cleanUp = cleanUp;
-        }
-      });
+      state.cleanUp = () => {};
     }
   });
   const useAttribute = createHook(attributeName => {
@@ -275,9 +292,14 @@
     const element = useHostElement();
     element[name] = (...args) => method(...args);
   });
+  const useConnectedState = createHook(() => {
+    const element = useHostElement();
+    return element._isConnected;
+  });
 
   exports.defineComponent = defineComponent;
   exports.prps = prps;
+  exports.createHook = createHook;
   exports.useReducer = useReducer;
   exports.useState = useState;
   exports.useEffect = useEffect;
@@ -287,8 +309,9 @@
   exports.useRenderer = useRenderer;
   exports.useHostElement = useHostElement;
   exports.useShadowRoot = useShadowRoot;
-  exports.createHook = createHook;
+  exports.useConnectedState = useConnectedState;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
+//# sourceMappingURL=core.js.map
