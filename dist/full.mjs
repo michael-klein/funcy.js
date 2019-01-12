@@ -107,7 +107,7 @@ const defaultRenderer = (view, shadowRoot) => {
 };
 
 const componentMap = new Map();
-function addComponent(name, options) {
+function addComponent(name, options = {}) {
   class Component extends HTMLElement {
     constructor() {
       super();
@@ -117,7 +117,10 @@ function addComponent(name, options) {
     }
     connectedCallback() {
       if (!this._shadowRoot) {
-        this._shadowRoot = this.attachShadow({ mode: "open" });
+        this._shadowRoot = this.attachShadow({
+          mode: "open",
+          ...(options.shadowOptions ? options.shadowOptions : {})
+        });
       }
       if (!this._isConnected) {
         this._isConnected = true;
@@ -297,7 +300,7 @@ const usePreactHtm = createHook(() => {
   useRenderer((view, shadowRoot) => {
     E(view, shadowRoot);
   });
-  return [V];
+  return V;
 });
 
 export { defineComponent, prps, createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState, usePreactHtm };

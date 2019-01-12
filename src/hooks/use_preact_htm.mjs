@@ -4,5 +4,5 @@ export const usePreactHtm = createHook(() => {
   useRenderer((view, shadowRoot) => {
     render(view, shadowRoot);
   });
-  return [html];
+  return html;
 });

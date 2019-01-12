@@ -37,7 +37,7 @@ defineComponent("todo-list", () => {
       id: currentItemId
     }
   ]);
-  const [html] = usePreactHtm();
+  const html = usePreactHtm();
   const addItem = () => {
     const nextItemId = currentItemId + 1;
     items.push({
@@ -91,7 +91,7 @@ defineComponent("todo-list", () => {
 });
 
 defineComponent("todo-item", ({ done, text, toggle, setText, removeTodo }) => {
-  const [html] = usePreactHtm();
+  const html = usePreactHtm();
   const checkBoxclicked = e => {
     toggle();
   };
@@ -158,7 +158,7 @@ defineComponent(
         color: gray;
       }
     `;
-    const [html] = usePreactHtm();
+    const html = usePreactHtm();
     const [total] = useAttribute("total");
     const [done] = useAttribute("done");
     return html`

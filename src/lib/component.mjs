@@ -1,7 +1,7 @@
 import { queueRender, defaultRenderer, getPassableProps } from "./renderer.mjs";
 export { prps } from "./renderer.mjs";
 const componentMap = new Map();
-function addComponent(name, options) {
+function addComponent(name, options = {}) {
   class Component extends HTMLElement {
     constructor() {
       super();
@@ -11,7 +11,10 @@ function addComponent(name, options) {
     }
     connectedCallback() {
       if (!this._shadowRoot) {
-        this._shadowRoot = this.attachShadow({ mode: "open" });
+        this._shadowRoot = this.attachShadow({
+          mode: "open",
+          ...(options.shadowOptions ? options.shadowOptions : {})
+        });
       }
       if (!this._isConnected) {
         this._isConnected = true;
