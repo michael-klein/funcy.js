@@ -17,6 +17,30 @@ Proper documentation will follow soon. For now you may look at todo example in t
 
 https://codepen.io/michael-klein/pen/xmQZBx
 
+### Installation
+
+Using npm:
+
+```js
+npm install funcy-components
+```
+
+```js
+import {defineComponent} from "funcy-components"
+```
+
+As ES6 module via hotlinking from unpkg:
+
+```js
+import {defineComponent} from "https://unpkg.com/funcy-components/dist/core.min.mjs"
+```
+
+or the full version with all hooks:
+
+```js
+import {defineComponent} from "https://unpkg.com/funcy-components/dist/full.min.mjs"
+```
+
 #### currently implemented hooks:
 
 * __useReducer__
