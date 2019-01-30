@@ -1,98 +1,38 @@
 import {
-  getCurrentElement,
-  getCurrentHookState,
-  queueRender,
-  queueAfterRender,
+  useEffect,
   createHook
-} from "../lib/renderer.mjs";
+} from "../../node_modules/hookuspocus/src/index.mjs";
 
-export const useHostElement = createHook(() => {
-  return getCurrentElement();
+export const useHostElement = createHook("useHostElement", ({ getContext }) => {
+  return getContext();
 });
-export const useShadowRoot = createHook(() => {
-  return useHostElement()._shadowRoot;
+export const useShadowRoot = createHook("useShadowRoot", ({ getContext }) => {
+  return getContext()._shadowRoot;
 });
-export const useReducer = createHook((reducer, initialState) => {
-  const hookState = getCurrentHookState({
-    reducer,
-    state: initialState
-  });
-  const element = useHostElement();
-  return [
-    hookState.state,
-    action => {
-      hookState.state = hookState.reducer(hookState.state, action);
-      queueRender(element);
-    }
-  ];
-});
-export const useState = createHook(initialState => {
-  const [state, dispatch] = useReducer((_, action) => {
-    return action.value;
-  }, initialState);
-
-  return [
-    state,
-    newState =>
-      dispatch({
-        type: "set_state",
-        value: newState
-      })
-  ];
-});
-export const useRenderer = createHook(rendererIn => {
-  const renderer = getCurrentHookState(rendererIn);
-  const element = useHostElement();
-  element._renderer = renderer;
-});
-export const useEffect = createHook((effect, values) => {
-  const state = getCurrentHookState({
-    effect,
-    values,
-    cleanUp: () => {}
-  });
-  const isConnected = useConnectedState();
-  if (isConnected) {
-    let nothingChanged = false;
-    if (state.values !== values && state.values && state.values.length > 0) {
-      nothingChanged = true;
-      let index = state.values.length;
-
-      while (index--) {
-        if (values[index] !== state.values[index]) {
-          nothingChanged = false;
-          break;
-        }
-      }
-      state.values = values;
-    }
-    if (!nothingChanged) {
-      state.cleanUp();
-      queueAfterRender(() => {
-        const cleanUp = state.effect();
-        if (cleanUp) {
-          state.cleanUp = cleanUp;
-        }
-      });
-    }
-  } else {
-    state.cleanUp();
-    state.cleanUp = () => {};
+export const useRenderer = createHook(
+  "useRenderer",
+  (rendererIn, { getContext, getState }) => {
+    const renderer = getState(rendererIn);
+    getContext()._renderer = renderer;
   }
-});
-export const useAttribute = createHook(attributeName => {
-  const element = useHostElement();
-  const attributeValue = element.getAttribute(attributeName);
-  return [
-    attributeValue,
-    value => {
-      element.skipQueue = true;
-      element.setAttribute(attributeName, value);
-    }
-  ];
-});
-export const useCSS = createHook((parts, ...slots) => {
+);
+export const useAttribute = createHook(
+  "useAttribute",
+  (attributeName, { getContext }) => {
+    const element = getContext();
+    const attributeValue = element.getAttribute(attributeName);
+    return [
+      attributeValue,
+      value => {
+        element.skipQueue = true;
+        element.setAttribute(attributeName, value);
+      }
+    ];
+  }
+);
+export const useCSS = createHook("useCSS", (parts, ...slots) => {
   let styles;
+  slots.pop();
   if (parts instanceof Array) {
     styles = parts
       .map((part, index) => {
@@ -117,11 +57,17 @@ export const useCSS = createHook((parts, ...slots) => {
     };
   });
 });
-export const useExposeMethod = createHook((name, method) => {
-  const element = useHostElement();
-  element[name] = (...args) => method(...args);
-});
-export const useConnectedState = createHook(() => {
-  const element = useHostElement();
-  return element._isConnected;
-});
+export const useExposeMethod = createHook(
+  "useExposeMethod",
+  (name, method, { getContext }) => {
+    const element = getContext();
+    element[name] = (...args) => method(...args);
+  }
+);
+export const useConnectedState = createHook(
+  "useConnectedState",
+  ({ getContext }) => {
+    const element = getContext();
+    return element._isConnected;
+  }
+);

@@ -1,33 +1,25 @@
-let currentElement;
-let currentHookStateIndex = undefined;
-const hookStateMap = new Map();
+import { run } from "../../node_modules/hookuspocus/src/index.mjs";
 const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
-const afterRenderQueue = [];
-const render = element => {
-  currentElement = element;
-  if (!hookStateMap.has(element)) {
-    hookStateMap.set(element, []);
-  }
-  currentHookStateIndex = -1;
-  element.render();
-  const afterRenderQueueLength = afterRenderQueue.length;
-  let afterRenderQueueIndex = afterRenderQueueLength;
-  while (afterRenderQueueIndex--) {
-    const afterRenderQueueLocalIndex =
-      afterRenderQueueLength - afterRenderQueueIndex - 1;
-    afterRenderQueue[afterRenderQueueLocalIndex]();
-  }
-  afterRenderQueue.length = 0;
-  currentHookStateIndex = undefined;
-};
-const unqeue = () => {
-  const queue = [...renderQueue];
-  renderQueue.length = 0;
+const render = element =>
+  run(() => element.render(), {
+    context: element,
+    onStateChange: name => {
+      if (name === "useReducer") {
+        queueRender(element);
+      }
+    }
+  });
+const unqeue = async () => {
+  const length = renderQueue.length;
   rendering = true;
-  requestAnimationFrame(() => {
-    queue.forEach(element => render(element));
+  Promise.resolve().then(async () => {
+    let index = length;
+    while (index--) {
+      await render(renderQueue[length - index - 1]);
+    }
+    renderQueue.splice(0, length);
     rendering = false;
     if (renderQueue.length > 0) unqeue();
   });
@@ -64,33 +56,6 @@ export const prps = props => {
     "data-props": id
   };
 };
-export const nextHook = () => {
-  if (currentHookStateIndex === undefined) {
-    throw new Error("Using hooks outside of a component is forbidden!");
-  }
-  currentHookStateIndex = currentHookStateIndex + 1;
-};
-export const createHook = hook => (...args) => {
-  nextHook();
-  return hook(...args);
-};
-export const queueAfterRender = callback => {
-  afterRenderQueue.push(callback);
-};
-
-export const getCurrentHookState = initialState => {
-  const hookState = hookStateMap.get(currentElement);
-  if (!hookState[currentHookStateIndex]) {
-    hookState[currentHookStateIndex] = initialState;
-    return initialState;
-  }
-  return hookState[currentHookStateIndex];
-};
-
-export const getCurrentElement = () => {
-  return currentElement;
-};
-
 export const defaultRenderer = (view, shadowRoot) => {
   if (
     !(view instanceof NodeList

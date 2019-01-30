@@ -1,6 +1,6 @@
 import { createHook, useRenderer } from "../export_core.mjs";
 import { html, render } from "../../node_modules/htm/preact/standalone.mjs";
-export const usePreactHtm = createHook(() => {
+export const usePreactHtm = createHook("usePreactHtm", () => {
   useRenderer((view, shadowRoot) => {
     render(view, shadowRoot);
   });

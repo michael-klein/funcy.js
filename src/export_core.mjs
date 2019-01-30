@@ -1,9 +1,12 @@
 export { defineComponent } from "./lib/component.mjs";
-export { prps, createHook } from "./lib/renderer.mjs";
+export { prps } from "./lib/renderer.mjs";
 export {
+  createHook,
   useReducer,
   useState,
-  useEffect,
+  useEffect
+} from "../node_modules/hookuspocus/src/index.mjs";
+export {
   useAttribute,
   useCSS,
   useExposeMethod,
