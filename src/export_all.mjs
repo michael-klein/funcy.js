@@ -6,13 +6,11 @@ export {
   useState,
   useEffect
 } from "../node_modules/hookuspocus/src/index.mjs";
-export {
-  useAttribute,
-  useCSS,
-  useExposeMethod,
-  useRenderer,
-  useHostElement,
-  useShadowRoot,
-  useConnectedState
-} from "./hooks/core_hooks.mjs";
+export { useAttribute } from "./hooks/use_attribute.mjs";
+export { useCSS } from "./hooks/use_css.mjs";
+export { useExposeMethod } from "./hooks/use_expose_method.mjs";
+export { useRenderer } from "./hooks/use_renderer.mjs";
+export { useHostElement } from "./hooks/use_host_element.mjs";
+export { useShadowRoot } from "./hooks/use_shadow_root.mjs";
+export { useConnectedState } from "./hooks/use_connected_state.mjs";
 export { usePreactHtm } from "./hooks/use_preact_htm.mjs";

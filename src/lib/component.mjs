@@ -1,4 +1,6 @@
+"use strict";
 import { queueRender, defaultRenderer, getPassableProps } from "./renderer.mjs";
+import { dispose } from "../../node_modules/hookuspocus/src/index.mjs";
 export { prps } from "./renderer.mjs";
 const componentMap = new Map();
 function addComponent(name, options = {}) {
@@ -24,18 +26,24 @@ function addComponent(name, options = {}) {
     disconnectedCallback() {
       if (this._isConnected) {
         this._isConnected = false;
-        queueRender(this, true);
+        queueRender(this);
       }
     }
-    render() {
+    destroy() {
+      this.parentElement.removeChild(this);
+      dispose(this);
+    }
+    async render() {
       const propsId = this.getAttribute("data-props");
       if (propsId) {
         this._props = getPassableProps(propsId);
         this.skipQueue = true;
         this.removeAttribute("data-props");
       }
-      const view = componentMap.get(name)(this._props);
-      this._renderer(view, this._shadowRoot);
+      const view = await Promise.resolve().then(() =>
+        componentMap.get(name)(this._props)
+      );
+      await this._renderer(view, this._shadowRoot);
       this.init = false;
     }
     attributeChangedCallback(attrName, oldVal, newVal) {

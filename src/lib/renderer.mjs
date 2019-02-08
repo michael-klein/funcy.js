@@ -1,16 +1,22 @@
+"use strict";
 import { run } from "../../node_modules/hookuspocus/src/index.mjs";
 const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
-const render = element =>
-  run(() => element.render(), {
+const render = element => {
+  return run({
     context: element,
+    onStateChange: (name, state, oldState) => {
+      console.log(name, state, oldState);
+    },
+    function: () => element.render(),
     onStateChange: name => {
       if (name === "useReducer") {
         queueRender(element);
       }
     }
   });
+};
 const unqeue = async () => {
   const length = renderQueue.length;
   rendering = true;

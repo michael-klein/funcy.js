@@ -5,7 +5,6 @@
 }(this, function (exports) { 'use strict';
 
   const OUTSIDE_RUN = Symbol("outside_run");
-  let currentHookStateIndex;
   let currentRun = OUTSIDE_RUN;
   const hookStateMap = new (WeakMap ? WeakMap : Map)();
   const reset = () => {
@@ -13,10 +12,10 @@
   };
   const createHookApi = name => {
     const hookStates = hookStateMap.get(currentRun.context);
-    if (hookStates[currentHookStateIndex] === undefined) {
-      hookStates[currentHookStateIndex] = {};
+    if (hookStates[currentRun.hookStateIndex] === undefined) {
+      hookStates[currentRun.hookStateIndex] = {};
     }
-    const hookState = hookStates[currentHookStateIndex];
+    const hookState = hookStates[currentRun.hookStateIndex];
     const onStateChange = currentRun.onStateChange;
     return {
       onCleanUp(callback) {
@@ -27,9 +26,6 @@
       },
       afterCurrentRun(callback) {
         hookState.afterCurrentRun = callback;
-      },
-      getApi() {
-        return currentRun.api;
       },
       getContext() {
         return currentRun.context;
@@ -49,7 +45,7 @@
     return (...args) => {
       if (currentRun.context === OUTSIDE_RUN)
         throw new Error("Hook was called outside of run()!");
-      currentHookStateIndex++;
+      currentRun.hookStateIndex++;
       const hookApi = createHookApi(name);
       return hook(...args, hookApi);
     };
@@ -64,30 +60,31 @@
       }
     }
   }
-  const run = (
-    callback,
-    { context, api, onStateChange = () => {} } = {}
-  ) => {
-    if (!context) context = callback;
-    if (!(context instanceof Object))
+  const dispose = context => {
+    const hookStates = hookStateMap.get(context);
+    runLifeCycleCallback("cleanUp", hookStates, hookStates.length);
+    hookStateMap.delete(context);
+  };
+  const run = (runData, ...args) => {
+    if (typeof runData === "function") {
+      runData = {
+        context: runData,
+        function: runData
+      };
+    }
+    if (!(runData.context instanceof Object))
       throw new Error("Run was called without a valid object context!");
-    if (currentRun !== OUTSIDE_RUN)
-      throw new Error("Run was called before the end of the previous run!");
-    currentRun = {
-      context,
-      api,
-      onStateChange
-    };
-    currentHookStateIndex = -1;
+    currentRun = runData;
+    currentRun.hookStateIndex = -1;
     let init = false;
-    if (!hookStateMap.has(context)) {
-      hookStateMap.set(context, []);
+    if (!hookStateMap.has(currentRun.context)) {
+      hookStateMap.set(currentRun.context, []);
       init = true;
     }
     const hookStates = hookStateMap.get(currentRun.context);
     const length = hookStates.length;
     runLifeCycleCallback("beforeNextRun", hookStates, length);
-    const result = callback();
+    const result = runData.function(...args);
     if (result instanceof Promise) {
       return result.then(value => {
         runLifeCycleCallback(
@@ -176,15 +173,20 @@
   const passPropsMap = new Map();
   let rendering = false;
   const renderQueue = [];
-  const render = element =>
-    run(() => element.render(), {
+  const render = element => {
+    return run({
       context: element,
+      onStateChange: (name, state, oldState) => {
+        console.log(name, state, oldState);
+      },
+      function: () => element.render(),
       onStateChange: name => {
         if (name === "useReducer") {
           queueRender(element);
         }
       }
     });
+  };
   const unqeue = async () => {
     const length = renderQueue.length;
     rendering = true;
@@ -269,18 +271,24 @@
       disconnectedCallback() {
         if (this._isConnected) {
           this._isConnected = false;
-          queueRender(this, true);
+          queueRender(this);
         }
       }
-      render() {
+      destroy() {
+        this.parentElement.removeChild(this);
+        dispose(this);
+      }
+      async render() {
         const propsId = this.getAttribute("data-props");
         if (propsId) {
           this._props = getPassableProps(propsId);
           this.skipQueue = true;
           this.removeAttribute("data-props");
         }
-        const view = componentMap.get(name)(this._props);
-        this._renderer(view, this._shadowRoot);
+        const view = await Promise.resolve().then(() =>
+          componentMap.get(name)(this._props)
+        );
+        await this._renderer(view, this._shadowRoot);
         this.init = false;
       }
       attributeChangedCallback(attrName, oldVal, newVal) {
@@ -313,19 +321,6 @@
     }
   };
 
-  const useHostElement = createHook("useHostElement", ({ getContext }) => {
-    return getContext();
-  });
-  const useShadowRoot = createHook("useShadowRoot", ({ getContext }) => {
-    return getContext()._shadowRoot;
-  });
-  const useRenderer = createHook(
-    "useRenderer",
-    (rendererIn, { getContext, getState }) => {
-      const renderer = getState(rendererIn);
-      getContext()._renderer = renderer;
-    }
-  );
   const useAttribute = createHook(
     "useAttribute",
     (attributeName, { getContext }) => {
@@ -340,9 +335,10 @@
       ];
     }
   );
+
   const useCSS = createHook("useCSS", (parts, ...slots) => {
+    const { getContext } = slots.pop();
     let styles;
-    slots.pop();
     if (parts instanceof Array) {
       styles = parts
         .map((part, index) => {
@@ -357,7 +353,7 @@
       styles = parts;
     }
     styles = styles.replace(/ +(?= )/g, "").replace(/\n/g, "");
-    const shadowRoot = useShadowRoot();
+    const shadowRoot = getContext()._shadowRoot;
     const style = document.createElement("style");
     style.innerHTML = styles;
     useEffect(() => {
@@ -367,6 +363,7 @@
       };
     });
   });
+
   const useExposeMethod = createHook(
     "useExposeMethod",
     (name, method, { getContext }) => {
@@ -374,6 +371,23 @@
       element[name] = (...args) => method(...args);
     }
   );
+
+  const useRenderer = createHook(
+    "useRenderer",
+    (rendererIn, { getContext, getState }) => {
+      const renderer = getState(rendererIn);
+      getContext()._renderer = renderer;
+    }
+  );
+
+  const useHostElement = createHook("useHostElement", ({ getContext }) => {
+    return getContext();
+  });
+
+  const useShadowRoot = createHook("useShadowRoot", ({ getContext }) => {
+    return getContext()._shadowRoot;
+  });
+
   const useConnectedState = createHook(
     "useConnectedState",
     ({ getContext }) => {
