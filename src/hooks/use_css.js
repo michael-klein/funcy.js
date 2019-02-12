@@ -2,7 +2,7 @@
 import {
   createHook,
   useEffect
-} from "../../node_modules/hookuspocus/src/index.mjs";
+} from "../../node_modules/hookuspocus/dist-src/index.js";
 
 export const useCSS = createHook("useCSS", (parts, ...slots) => {
   const { getContext } = slots.pop();

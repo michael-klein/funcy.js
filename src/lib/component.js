@@ -1,7 +1,7 @@
 "use strict";
-import { queueRender, defaultRenderer, getPassableProps } from "./renderer.mjs";
-import { dispose } from "../../node_modules/hookuspocus/src/index.mjs";
-export { prps } from "./renderer.mjs";
+import { queueRender, defaultRenderer, getPassableProps } from "./renderer.js";
+import { dispose } from "../../node_modules/hookuspocus/dist-src/index.js";
+export { prps } from "./renderer.js";
 const componentMap = new Map();
 function addComponent(name, options = {}) {
   class Component extends HTMLElement {

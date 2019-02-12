@@ -1,5 +1,5 @@
 "use strict";
-import { run } from "../../node_modules/hookuspocus/src/index.mjs";
+import { run } from "../../node_modules/hookuspocus/dist-src/index.js";
 const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];

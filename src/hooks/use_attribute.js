@@ -1,5 +1,5 @@
 "use strict";
-import { createHook } from "../../node_modules/hookuspocus/src/index.mjs";
+import { createHook } from "../../node_modules/hookuspocus/dist-src/index.js";
 
 export const useAttribute = createHook(
   "useAttribute",
