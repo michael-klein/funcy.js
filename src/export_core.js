@@ -1,6 +1,11 @@
 export { defineComponent } from "./lib/component.js";
 export { prps } from "./lib/renderer.js";
-export { createHook, useReducer, useState, useEffect } from "hookuspocus";
+export {
+  createHook,
+  useReducer,
+  useState,
+  useEffect
+} from "../node_modules/hookuspocus/dist-src/index.js";
 export { useAttribute } from "./hooks/use_attribute.js";
 export { useCSS } from "./hooks/use_css.js";
 export { useExposeMethod } from "./hooks/use_expose_method.js";

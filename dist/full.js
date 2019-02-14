@@ -1,22 +1,8 @@
-import { createHook } from 'hookuspocus';
+const contextMap = new (WeakMap ? WeakMap : Map)();
+let currentContext;
 
-const OUTSIDE_RUN = Symbol("outside_run");
-let currentRun = OUTSIDE_RUN;
-const hookStateMap = new (WeakMap ? WeakMap : Map)();
-
-const reset = () => {
-  currentRun = OUTSIDE_RUN;
-};
-
-const createHookApi = name => {
-  const hookStates = hookStateMap.get(currentRun.context);
-
-  if (hookStates[currentRun.hookStateIndex] === undefined) {
-    hookStates[currentRun.hookStateIndex] = {};
-  }
-
-  const hookState = hookStates[currentRun.hookStateIndex];
-  const onStateChange = currentRun.onStateChange;
+const createHookApi = (name, contextMapEntry) => {
+  const hookState = contextMapEntry.hookStates[contextMapEntry.hookStateIndex];
   return {
     onCleanUp(callback) {
       hookState.cleanUp = callback;
@@ -31,94 +17,94 @@ const createHookApi = name => {
     },
 
     getContext() {
-      return currentRun.context;
+      return currentContext;
     },
 
-    getState(initialState) {
-      if (hookState.state === undefined) hookState.state = initialState;
-      return hookState.state;
+    getValue(initialValue) {
+      if (hookState.value === undefined) hookState.value = initialValue;
+      return hookState.value;
     },
 
-    setState(value, silent = false) {
-      let oldValue = hookState.state;
-      hookState.state = value;
-      if (!silent && onStateChange) onStateChange(name, oldValue, value);
+    setValue(value, silent = false) {
+      let oldValue = hookState.value;
+      hookState.value = value;
+      if (!silent && contextMapEntry.onValueChange) contextMapEntry.onValueChange(name, value, oldValue);
     }
 
   };
 };
 
-const createHook$1 = (name, hook) => {
+const createHook = (name, hook) => {
   return (...args) => {
-    if (currentRun.context === OUTSIDE_RUN) throw new Error("Hook was called outside of run()!");
-    currentRun.hookStateIndex++;
-    const hookApi = createHookApi(name);
-    return hook(...args, hookApi);
+    if (currentContext === undefined) throw new Error("Hook was called outside of run()!");
+    const contextMapEntry = contextMap.get(currentContext);
+    contextMapEntry.hookStateIndex++;
+
+    if (contextMapEntry.hookStates[contextMapEntry.hookStateIndex] === undefined) {
+      contextMapEntry.hookStates[contextMapEntry.hookStateIndex] = {
+        value: undefined
+      };
+      contextMapEntry.hookStates[contextMapEntry.hookStateIndex].hookApi = createHookApi(name, contextMapEntry);
+    }
+
+    return hook(contextMapEntry.hookStates[contextMapEntry.hookStateIndex].hookApi, ...args);
   };
 };
 
-function runLifeCycleCallback(name, hookStates, length) {
-  let index = length;
-
-  while (index--) {
-    const hookState = hookStates[length - index - 1];
-
+function runLifeCycleCallback(name, hookStates) {
+  for (const hookState of hookStates) {
     if (hookState[name]) {
       hookState[name]();
       hookState[name] = undefined;
     }
   }
 }
-const dispose = context => {
-  const hookStates = hookStateMap.get(context);
-  runLifeCycleCallback("cleanUp", hookStates, hookStates.length);
-  hookStateMap.delete(context);
+
+const hookus = (context, onValueChange) => {
+  if (!(context instanceof Object)) throw new Error("Context must be an object!");
+  contextMap.set(context, {
+    hookStates: [],
+    hookStateIndex: -1,
+    onValueChange
+  });
 };
-const run = (runData, ...args) => {
-  if (typeof runData === "function") {
-    runData = {
-      context: runData,
-      function: runData
-    };
-  }
+const dispose = context => {
+  const contextMapEntry = contextMap.get(context);
+  runLifeCycleCallback("cleanUp", contextMapEntry.hookStates);
+  contextMapEntry.hookStates.length = 0;
+  contextMapEntry.delete(context);
+};
+const pocus = (context, func, ...args) => {
+  if (currentContext !== undefined) throw new Error("Tried to start a run before the end of the previous run!");
+  if (!contextMap.has(context)) throw new Error("Tried to start a run without a registered context!");
+  currentContext = context;
+  const contextMapEntry = contextMap.get(currentContext);
+  contextMapEntry.hookStateIndex = -1;
+  runLifeCycleCallback("beforeNextRun", contextMapEntry.hookStates);
+  const result = func(...args);
 
-  if (!(runData.context instanceof Object)) throw new Error("Run was called without a valid object context!");
-  currentRun = runData;
-  currentRun.hookStateIndex = -1;
-  let init = false;
-
-  if (!hookStateMap.has(currentRun.context)) {
-    hookStateMap.set(currentRun.context, []);
-    init = true;
-  }
-
-  const hookStates = hookStateMap.get(currentRun.context);
-  const length = hookStates.length;
-  runLifeCycleCallback("beforeNextRun", hookStates, length);
-  const result = runData.function(...args);
+  const finish = value => {
+    runLifeCycleCallback("afterCurrentRun", contextMapEntry.hookStates);
+    currentContext = undefined;
+    return value;
+  };
 
   if (result instanceof Promise) {
-    return result.then(value => {
-      runLifeCycleCallback("afterCurrentRun", hookStates, init ? hookStates.length : length);
-      reset();
-      return value;
-    });
+    return result.then(finish);
   } else {
-    runLifeCycleCallback("afterCurrentRun", hookStates, init ? hookStates.length : length);
-    reset();
-    return result;
+    return finish(result);
   }
 };
-const useReducer = createHook$1("useReducer", (reducer, initialState, {
-  getState,
-  setState
-}) => {
-  const state = getState(initialState);
+const useReducer = createHook("useReducer", ({
+  getValue,
+  setValue
+}, reducer, initialState) => {
+  const state = getValue(initialState);
   return [state, action => {
-    setState(reducer(state, action));
+    setValue(reducer(state, action));
   }];
 });
-const useState = createHook$1("useState", initialState => {
+const useState = initialState => {
   const [state, dispatch] = useReducer((_, action) => {
     return action.value;
   }, initialState);
@@ -126,24 +112,17 @@ const useState = createHook$1("useState", initialState => {
     type: "set_state",
     value: newState
   })];
-});
-const useEffect = createHook$1("useEffect", (effect, ...rest) => {
-  let valuesIn;
-
-  if (rest.length > 1) {
-    valuesIn = rest[0];
-  }
-
-  const {
-    getState,
-    setState,
-    onCleanUp,
-    afterCurrentRun
-  } = rest[rest.length - 1];
+};
+const useEffect = createHook("useEffect", ({
+  getValue,
+  setValue,
+  onCleanUp,
+  afterCurrentRun
+}, effect, valuesIn) => {
   let {
     values,
     cleanUp
-  } = getState({});
+  } = getValue({});
   let nothingChanged = false;
 
   if (values !== valuesIn && values && values.length > 0) {
@@ -164,7 +143,7 @@ const useEffect = createHook$1("useEffect", (effect, ...rest) => {
     if (cleanUp) cleanUp();
     afterCurrentRun(() => {
       cleanUp = effect();
-      setState({
+      setValue({
         values: valuesIn,
         cleanUp
       });
@@ -184,18 +163,7 @@ const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const render = element => {
-  return run({
-    context: element,
-    onStateChange: (name, state, oldState) => {
-      console.log(name, state, oldState);
-    },
-    function: () => element.render(),
-    onStateChange: name => {
-      if (name === "useReducer") {
-        queueRender(element);
-      }
-    }
-  });
+  return pocus(element, element.render);
 };
 const unqeue = async () => {
   const length = renderQueue.length;
@@ -265,6 +233,11 @@ function addComponent(name, options = {}) {
       this._props = {};
       this._renderer = defaultRenderer;
       this._isConnected = false;
+      hookus(this, (name, value, oldValue) => {
+        if (name === "useReducer" && value !== oldValue) {
+          queueRender(element);
+        }
+      });
     }
     connectedCallback() {
       if (!this._shadowRoot) {
@@ -331,7 +304,7 @@ const defineComponent = (name, component, options = {}) => {
   }
 };
 
-const useAttribute = createHook$1(
+const useAttribute = createHook(
   "useAttribute",
   (attributeName, { getContext }) => {
     const element = getContext();
@@ -346,7 +319,7 @@ const useAttribute = createHook$1(
   }
 );
 
-const useCSS = createHook$1("useCSS", (parts, ...slots) => {
+const useCSS = createHook("useCSS", (parts, ...slots) => {
   const { getContext } = slots.pop();
   let styles;
   if (parts instanceof Array) {
@@ -374,7 +347,7 @@ const useCSS = createHook$1("useCSS", (parts, ...slots) => {
   });
 });
 
-const useExposeMethod = createHook$1(
+const useExposeMethod = createHook(
   "useExposeMethod",
   (name, method, { getContext }) => {
     const element = getContext();
@@ -382,7 +355,7 @@ const useExposeMethod = createHook$1(
   }
 );
 
-const useRenderer = createHook$1(
+const useRenderer = createHook(
   "useRenderer",
   (rendererIn, { getContext, getState }) => {
     const renderer = getState(rendererIn);
@@ -390,15 +363,15 @@ const useRenderer = createHook$1(
   }
 );
 
-const useHostElement = createHook$1("useHostElement", ({ getContext }) => {
+const useHostElement = createHook("useHostElement", ({ getContext }) => {
   return getContext();
 });
 
-const useShadowRoot = createHook$1("useShadowRoot", ({ getContext }) => {
+const useShadowRoot = createHook("useShadowRoot", ({ getContext }) => {
   return getContext()._shadowRoot;
 });
 
-const useConnectedState = createHook$1(
+const useConnectedState = createHook(
   "useConnectedState",
   ({ getContext }) => {
     const element = getContext();
@@ -415,11 +388,11 @@ const usePreactHtm = createHook("usePreactHtm", () => {
   return V;
 });
 
-export { defineComponent, prps, createHook$1 as createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState, usePreactHtm };
+export { defineComponent, prps, createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState, usePreactHtm };
 //# sourceMappingURL=full.js.map
-th;m++){if(n=e[h].charCodeAt(m),o){if(39===n||34===n){if(v===n){v=0;continue}if(0===v){v=n;continue}}if(0===v)switch(n){case 62:_(),47!==l&&(a+=u?","+u+f+d:",null"),t&&(a+=")"),o=0,u="",l=1;continue;case 61:l=13,i=!0,r=s,s="";continue;case 47:t||(t=!0,9!==l||s.trim()||(s=c="",l=47));continue;case 9:case 10:case 13:case 32:_(),l=0;continue}}else if(60===n){_(),o=1,d=f=u="",t=i=!1,l=9;continue}s+=e[h].charAt(m);}}return _(),Function("h","$",a)};function E(e,t){!function(e,t,n){C(n,e,{},!1,t,!1);}(e,t,t.firstElementChild);}var V=function(e){for(var t=".",n=0;n<e.length;n++)t+=e[n].length+","+e[n];return (M[t]||(M[t]=A(e)))(this,arguments)}.bind(r);
+m),o){if(39===n||34===n){if(v===n){v=0;continue}if(0===v){v=n;continue}}if(0===v)switch(n){case 62:_(),47!==l&&(a+=u?","+u+f+d:",null"),t&&(a+=")"),o=0,u="",l=1;continue;case 61:l=13,i=!0,r=s,s="";continue;case 47:t||(t=!0,9!==l||s.trim()||(s=c="",l=47));continue;case 9:case 10:case 13:case 32:_(),l=0;continue}}else if(60===n){_(),o=1,d=f=u="",t=i=!1,l=9;continue}s+=e[h].charAt(m);}}return _(),Function("h","$",a)};function E(e,t){!function(e,t,n){C(n,e,{},!1,t,!1);}(e,t,t.firstElementChild);}var V=function(e){for(var t=".",n=0;n<e.length;n++)t+=e[n].length+","+e[n];return (M[t]||(M[t]=A(e)))(this,arguments)}.bind(r);
 
-  const usePreactHtm = hookuspocus.createHook("usePreactHtm", () => {
+  const usePreactHtm = createHook("usePreactHtm", () => {
     useRenderer((view, shadowRoot) => {
       E(view, shadowRoot);
     });

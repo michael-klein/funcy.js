@@ -1,6 +1,9 @@
 "use strict";
 import { queueRender, defaultRenderer, getPassableProps } from "./renderer.js";
-import { dispose } from "../../node_modules/hookuspocus/dist-src/index.js";
+import {
+  dispose,
+  hookus
+} from "../../node_modules/hookuspocus/dist-src/index.js";
 export { prps } from "./renderer.js";
 const componentMap = new Map();
 function addComponent(name, options = {}) {
@@ -10,6 +13,11 @@ function addComponent(name, options = {}) {
       this._props = {};
       this._renderer = defaultRenderer;
       this._isConnected = false;
+      hookus(this, (name, value, oldValue) => {
+        if (name === "useReducer" && value !== oldValue) {
+          queueRender(element);
+        }
+      });
     }
     connectedCallback() {
       if (!this._shadowRoot) {

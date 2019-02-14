@@ -1,22 +1,8 @@
-export { createHook, useReducer, useState, useEffect } from 'hookuspocus';
+const contextMap = new (WeakMap ? WeakMap : Map)();
+let currentContext;
 
-const OUTSIDE_RUN = Symbol("outside_run");
-let currentRun = OUTSIDE_RUN;
-const hookStateMap = new (WeakMap ? WeakMap : Map)();
-
-const reset = () => {
-  currentRun = OUTSIDE_RUN;
-};
-
-const createHookApi = name => {
-  const hookStates = hookStateMap.get(currentRun.context);
-
-  if (hookStates[currentRun.hookStateIndex] === undefined) {
-    hookStates[currentRun.hookStateIndex] = {};
-  }
-
-  const hookState = hookStates[currentRun.hookStateIndex];
-  const onStateChange = currentRun.onStateChange;
+const createHookApi = (name, contextMapEntry) => {
+  const hookState = contextMapEntry.hookStates[contextMapEntry.hookStateIndex];
   return {
     onCleanUp(callback) {
       hookState.cleanUp = callback;
@@ -31,18 +17,18 @@ const createHookApi = name => {
     },
 
     getContext() {
-      return currentRun.context;
+      return currentContext;
     },
 
-    getState(initialState) {
-      if (hookState.state === undefined) hookState.state = initialState;
-      return hookState.state;
+    getValue(initialValue) {
+      if (hookState.value === undefined) hookState.value = initialValue;
+      return hookState.value;
     },
 
-    setState(value, silent = false) {
-      let oldValue = hookState.state;
-      hookState.state = value;
-      if (!silent && onStateChange) onStateChange(name, oldValue, value);
+    setValue(value, silent = false) {
+      let oldValue = hookState.value;
+      hookState.value = value;
+      if (!silent && contextMapEntry.onValueChange) contextMapEntry.onValueChange(name, value, oldValue);
     }
 
   };
@@ -50,82 +36,93 @@ const createHookApi = name => {
 
 const createHook = (name, hook) => {
   return (...args) => {
-    if (currentRun.context === OUTSIDE_RUN) throw new Error("Hook was called outside of run()!");
-    currentRun.hookStateIndex++;
-    const hookApi = createHookApi(name);
-    return hook(...args, hookApi);
+    if (currentContext === undefined) throw new Error("Hook was called outside of run()!");
+    const contextMapEntry = contextMap.get(currentContext);
+    contextMapEntry.hookStateIndex++;
+
+    if (contextMapEntry.hookStates[contextMapEntry.hookStateIndex] === undefined) {
+      contextMapEntry.hookStates[contextMapEntry.hookStateIndex] = {
+        value: undefined
+      };
+      contextMapEntry.hookStates[contextMapEntry.hookStateIndex].hookApi = createHookApi(name, contextMapEntry);
+    }
+
+    return hook(contextMapEntry.hookStates[contextMapEntry.hookStateIndex].hookApi, ...args);
   };
 };
 
-function runLifeCycleCallback(name, hookStates, length) {
-  let index = length;
-
-  while (index--) {
-    const hookState = hookStates[length - index - 1];
-
+function runLifeCycleCallback(name, hookStates) {
+  for (const hookState of hookStates) {
     if (hookState[name]) {
       hookState[name]();
       hookState[name] = undefined;
     }
   }
 }
-const dispose = context => {
-  const hookStates = hookStateMap.get(context);
-  runLifeCycleCallback("cleanUp", hookStates, hookStates.length);
-  hookStateMap.delete(context);
+
+const hookus = (context, onValueChange) => {
+  if (!(context instanceof Object)) throw new Error("Context must be an object!");
+  contextMap.set(context, {
+    hookStates: [],
+    hookStateIndex: -1,
+    onValueChange
+  });
 };
-const run = (runData, ...args) => {
-  if (typeof runData === "function") {
-    runData = {
-      context: runData,
-      function: runData
-    };
-  }
+const dispose = context => {
+  const contextMapEntry = contextMap.get(context);
+  runLifeCycleCallback("cleanUp", contextMapEntry.hookStates);
+  contextMapEntry.hookStates.length = 0;
+  contextMapEntry.delete(context);
+};
+const pocus = (context, func, ...args) => {
+  if (currentContext !== undefined) throw new Error("Tried to start a run before the end of the previous run!");
+  if (!contextMap.has(context)) throw new Error("Tried to start a run without a registered context!");
+  currentContext = context;
+  const contextMapEntry = contextMap.get(currentContext);
+  contextMapEntry.hookStateIndex = -1;
+  runLifeCycleCallback("beforeNextRun", contextMapEntry.hookStates);
+  const result = func(...args);
 
-  if (!(runData.context instanceof Object)) throw new Error("Run was called without a valid object context!");
-  currentRun = runData;
-  currentRun.hookStateIndex = -1;
-  let init = false;
-
-  if (!hookStateMap.has(currentRun.context)) {
-    hookStateMap.set(currentRun.context, []);
-    init = true;
-  }
-
-  const hookStates = hookStateMap.get(currentRun.context);
-  const length = hookStates.length;
-  runLifeCycleCallback("beforeNextRun", hookStates, length);
-  const result = runData.function(...args);
+  const finish = value => {
+    runLifeCycleCallback("afterCurrentRun", contextMapEntry.hookStates);
+    currentContext = undefined;
+    return value;
+  };
 
   if (result instanceof Promise) {
-    return result.then(value => {
-      runLifeCycleCallback("afterCurrentRun", hookStates, init ? hookStates.length : length);
-      reset();
-      return value;
-    });
+    return result.then(finish);
   } else {
-    runLifeCycleCallback("afterCurrentRun", hookStates, init ? hookStates.length : length);
-    reset();
-    return result;
+    return finish(result);
   }
 };
-const useEffect = createHook("useEffect", (effect, ...rest) => {
-  let valuesIn;
-
-  if (rest.length > 1) {
-    valuesIn = rest[0];
-  }
-
-  const {
-    getState,
-    setState,
-    onCleanUp,
-    afterCurrentRun
-  } = rest[rest.length - 1];
+const useReducer = createHook("useReducer", ({
+  getValue,
+  setValue
+}, reducer, initialState) => {
+  const state = getValue(initialState);
+  return [state, action => {
+    setValue(reducer(state, action));
+  }];
+});
+const useState = initialState => {
+  const [state, dispatch] = useReducer((_, action) => {
+    return action.value;
+  }, initialState);
+  return [state, newState => dispatch({
+    type: "set_state",
+    value: newState
+  })];
+};
+const useEffect = createHook("useEffect", ({
+  getValue,
+  setValue,
+  onCleanUp,
+  afterCurrentRun
+}, effect, valuesIn) => {
   let {
     values,
     cleanUp
-  } = getState({});
+  } = getValue({});
   let nothingChanged = false;
 
   if (values !== valuesIn && values && values.length > 0) {
@@ -146,7 +143,7 @@ const useEffect = createHook("useEffect", (effect, ...rest) => {
     if (cleanUp) cleanUp();
     afterCurrentRun(() => {
       cleanUp = effect();
-      setState({
+      setValue({
         values: valuesIn,
         cleanUp
       });
@@ -166,18 +163,7 @@ const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const render = element => {
-  return run({
-    context: element,
-    onStateChange: (name, state, oldState) => {
-      console.log(name, state, oldState);
-    },
-    function: () => element.render(),
-    onStateChange: name => {
-      if (name === "useReducer") {
-        queueRender(element);
-      }
-    }
-  });
+  return pocus(element, element.render);
 };
 const unqeue = async () => {
   const length = renderQueue.length;
@@ -247,6 +233,11 @@ function addComponent(name, options = {}) {
       this._props = {};
       this._renderer = defaultRenderer;
       this._isConnected = false;
+      hookus(this, (name, value, oldValue) => {
+        if (name === "useReducer" && value !== oldValue) {
+          queueRender(element);
+        }
+      });
     }
     connectedCallback() {
       if (!this._shadowRoot) {
@@ -388,11 +379,9 @@ const useConnectedState = createHook(
   }
 );
 
-export { defineComponent, prps, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState };
+export { defineComponent, prps, createHook, useReducer, useState, useEffect, useAttribute, useCSS, useExposeMethod, useRenderer, useHostElement, useShadowRoot, useConnectedState };
 //# sourceMappingURL=core.js.map
- });
 
-  const useExposeMethod = createHook(
     "useExposeMethod",
     (name, method, { getContext }) => {
       const element = getContext();
@@ -424,12 +413,12 @@ export { defineComponent, prps, useAttribute, useCSS, useExposeMethod, useRender
     }
   );
 
-  exports.createHook = hookuspocus.createHook;
-  exports.useReducer = hookuspocus.useReducer;
-  exports.useState = hookuspocus.useState;
-  exports.useEffect = hookuspocus.useEffect;
   exports.defineComponent = defineComponent;
   exports.prps = prps;
+  exports.createHook = createHook;
+  exports.useReducer = useReducer;
+  exports.useState = useState;
+  exports.useEffect = useEffect;
   exports.useAttribute = useAttribute;
   exports.useCSS = useCSS;
   exports.useExposeMethod = useExposeMethod;

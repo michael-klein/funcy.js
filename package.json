@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/michael-klein/funcy.js#readme",
   "dependencies": {
-    "hookuspocus": "0.1.0",
+    "hookuspocus": "0.2.0",
     "htm": "^2.0.0"
   },
   "devDependencies": {

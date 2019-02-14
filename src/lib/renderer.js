@@ -1,21 +1,10 @@
 "use strict";
-import { run } from "../../node_modules/hookuspocus/dist-src/index.js";
+import { pocus } from "../../node_modules/hookuspocus/dist-src/index.js";
 const passPropsMap = new Map();
 let rendering = false;
 const renderQueue = [];
 const render = element => {
-  return run({
-    context: element,
-    onStateChange: (name, state, oldState) => {
-      console.log(name, state, oldState);
-    },
-    function: () => element.render(),
-    onStateChange: name => {
-      if (name === "useReducer") {
-        queueRender(element);
-      }
-    }
-  });
+  return pocus(element, element.render);
 };
 const unqeue = async () => {
   const length = renderQueue.length;
