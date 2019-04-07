@@ -1,66 +1,33 @@
 import { terser } from "rollup-plugin-terser";
 export default [
   {
-    input: "src/export_core.js",
+    input: "src/index.js",
     output: [
       {
-        file: "dist/core.js",
+        file: "dist/index.js",
         name: "funcyjs",
         format: "umd",
         sourcemap: true
       },
       {
-        file: "dist/core.js",
+        file: "dist/index.esm.js",
         format: "esm",
         sourcemap: true
       }
     ]
   },
   {
-    input: "src/export_all.js",
-    output: [
-      {
-        file: "dist/full.js",
-        name: "funcyjs",
-        format: "umd",
-        sourcemap: true
-      },
-      {
-        file: "dist/full.js",
-        format: "esm",
-        sourcemap: true
-      }
-    ]
-  },
-  {
-    input: "src/export_core.js",
+    input: "src/index.js",
     plugins: [terser({ sourcemap: true })],
     output: [
       {
-        file: "dist/core.min.js",
+        file: "dist/index.min.js",
         name: "funcyjs",
         format: "umd",
         sourcemap: true
       },
       {
-        file: "dist/core.min.js",
-        format: "esm",
-        sourcemap: true
-      }
-    ]
-  },
-  {
-    input: "src/export_all.js",
-    plugins: [terser({ sourcemap: true })],
-    output: [
-      {
-        file: "dist/full.min.js",
-        name: "funcyjs",
-        format: "umd",
-        sourcemap: true
-      },
-      {
-        file: "dist/full.min.js",
+        file: "dist/index.esm.min.js",
         format: "esm",
         sourcemap: true
       }

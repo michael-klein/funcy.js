@@ -1,10 +1,5 @@
-"use strict";
-import { createHook } from "../../node_modules/hookuspocus/dist-src/index.js";
+import { hookus } from "../../node_modules/hookuspocus/src/index";
 
-export const useRenderer = createHook(
-  "useRenderer",
-  (rendererIn, { getContext, getState }) => {
-    const renderer = getState(rendererIn);
-    getContext()._renderer = renderer;
-  }
-);
+export const useRenderer = hookus((data, rendererIn) => {
+  data.context.renderer = rendererIn;
+});
