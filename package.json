@@ -9,6 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "./node_modules/rollup/bin/rollup -c",
+    "size-check": "npx bundlewatch",
     "watch": "./node_modules/rollup/bin/rollup -c -w"
   },
   "repository": {
@@ -30,11 +31,20 @@
   },
   "homepage": "https://github.com/michael-klein/funcy.js#readme",
   "dependencies": {
-    "hookuspocus": "^1.1.1",
+    "hookuspocus": "^1.1.4",
     "htm": "^2.0.0"
   },
   "devDependencies": {
     "rollup": "^1.1.2",
-    "rollup-plugin-terser": "^4.0.2"
+    "rollup-plugin-terser": "^4.0.2",
+    "bundlewatch": "^0.2.1"
+  },
+  "bundlewatch": {
+    "files": [
+      {
+        "path": "dist/*.min.js",
+        "maxSize": "2kB"
+      }
+    ]
   }
 }

@@ -16,7 +16,7 @@ function useLitHTML() {
   });
   return html;
 }
-
+window.foo = "bar";
 component("example-component", () => {
   const html = useLitHTML();
   const [count, setCount] = useState(0);
@@ -31,7 +31,7 @@ component("example-component", () => {
       <div>count: ${count}</div>
       <div>${attr}</div>
       <div>
-        <input type="text" value=${foo} @input=${e => setFoo(e.target.value)}/>
+        <input type="text" value=${foo} @input=${e => setFoo(e.target.value)} />
         <example-component2 .foo=${foo}></example-component2>
       </div>
     </div>

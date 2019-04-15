@@ -1,29 +1,20 @@
 import { on, useReducer } from "../node_modules/hookuspocus/src/index";
-const queue = [];
-let rendering = false;
-let renderStart;
-const unqeue = async () => {
-  if (!rendering && queue.length > 0) {
-    renderStart = renderStart || Date.now();
-    rendering = true;
-    const component = queue.pop();
-    await component.render();
-    const next = () => {
-      rendering = false;
-      unqeue();
-    };
-    if (Date.now() - renderStart > 66) {
-      requestAnimationFrame(next);
-    } else {
-      next();
+window.___funcyJsRenderQueue;
+const createRenderPromise = component => {
+  const promise = new Promise(resolve => resolve(component.render())).then(
+    _ => {
+      if ((window.___funcyJsRenderQueue = promise)) {
+        window.___funcyJsRenderQueue = undefined;
+      }
     }
-  }
+  );
 };
 export const queueRender = component => {
-  if (queue.indexOf(component) === -1) {
-    queue.push(component);
+  if (!window.___funcyJsRenderQueue) {
+    window.___funcyJsRenderQueue = createRenderPromise(component);
+  } else {
+    window.___funcyJsRenderQueue.then(() => createRenderPromise(component));
   }
-  unqeue();
 };
 on(useReducer, (data, reducer, initialArg, init) => {
   const [state, dispatch] = data.hook(data, reducer, initialArg, init);
@@ -32,7 +23,7 @@ on(useReducer, (data, reducer, initialArg, init) => {
     action => {
       const result = dispatch(action);
       if (state !== result) {
-        queueRender(data.context)
+        queueRender(data.context);
       }
       return result;
     }

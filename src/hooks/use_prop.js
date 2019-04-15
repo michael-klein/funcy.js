@@ -1,5 +1,4 @@
-"use strict";
-import { hookus, useState } from "../../node_modules/hookuspocus/src/index";
+import { hookus } from "../../node_modules/hookuspocus/src/index";
 import { queueRender } from "../render_qeue";
 
 export const useProp = hookus((data, name, initialValue) => {

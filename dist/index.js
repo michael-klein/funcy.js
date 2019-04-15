@@ -4,18 +4,21 @@
   (global = global || self, factory(global.funcyjs = {}));
 }(this, function (exports) { 'use strict';
 
-  let hookIndex;
-  let stackIndex;
-  const hookDataStack = [];
-  const dataMap = new (WeakMap || Map)();
-  const runMap = new (WeakMap || Map)();
+  const runMap = window.___hookusPocusRunMap || new (WeakMap || Map)();
+  window.___hookusPocusRunMap = runMap;
+
+  const hookDataStack = runMap.h || [];
+  runMap.h = hookDataStack;
+
+  const dataMap = runMap.d || new (WeakMap || Map)();
+  runMap.d = dataMap;
   const hookus = hookFunction => {
     return function hook() {
-      const context = hookDataStack[stackIndex][0];
-      hookIndex++;
+      const context = hookDataStack[runMap.stackIndex][0];
+      runMap.hookIndex++;
       const data =
-        hookDataStack[stackIndex][hookIndex] ||
-        (hookDataStack[stackIndex][hookIndex] = [
+        hookDataStack[runMap.stackIndex][runMap.hookIndex] ||
+        (hookDataStack[runMap.stackIndex][runMap.hookIndex] = [
           { context, hook: hookFunction }
         ]);
       return (dataMap.get(hook) || hookFunction).apply(
@@ -25,7 +28,7 @@
     };
   };
   const runLifeCycles = (context, name) => {
-    const promises = hookDataStack[stackIndex]
+    const promises = hookDataStack[runMap.stackIndex]
       .map(data => {
         if (data[0] && data[0][name]) {
           const result = data[0][name]();
@@ -57,9 +60,10 @@
       dataMap.delete(context);
     } else {
       return waitForContext(context, () => {
-        hookIndex = 0;
-        stackIndex = hookDataStack.push(dataMap.get(context) || [context]) - 1;
-        dataMap.set(context, hookDataStack[stackIndex]);
+        runMap.hookIndex = 0;
+        runMap.stackIndex =
+          hookDataStack.push(dataMap.get(context) || [context]) - 1;
+        dataMap.set(context, hookDataStack[runMap.stackIndex]);
         runLifeCycles(context, "before");
         return waitForContext(context, () => {
           let result = func.apply(func, args);
@@ -149,31 +153,22 @@
     return data.context;
   });
 
-  const queue = [];
-  let rendering = false;
-  let renderStart;
-  const unqeue = async () => {
-    if (!rendering && queue.length > 0) {
-      renderStart = renderStart || Date.now();
-      rendering = true;
-      const component = queue.pop();
-      await component.render();
-      const next = () => {
-        rendering = false;
-        unqeue();
-      };
-      if (Date.now() - renderStart > 66) {
-        requestAnimationFrame(next);
-      } else {
-        next();
+  window.___funcyJsRenderQueue;
+  const createRenderPromise = component => {
+    const promise = new Promise(resolve => resolve(component.render())).then(
+      _ => {
+        if ((window.___funcyJsRenderQueue = promise)) {
+          window.___funcyJsRenderQueue = undefined;
+        }
       }
-    }
+    );
   };
   const queueRender = component => {
-    if (queue.indexOf(component) === -1) {
-      queue.push(component);
+    if (!window.___funcyJsRenderQueue) {
+      window.___funcyJsRenderQueue = createRenderPromise(component);
+    } else {
+      window.___funcyJsRenderQueue.then(() => createRenderPromise(component));
     }
-    unqeue();
   };
   on(useReducer, (data, reducer, initialArg, init) => {
     const [state, dispatch] = data.hook(data, reducer, initialArg, init);
