@@ -17,7 +17,7 @@ Naming things is hard and 'funcyjs' (pronounced like funky) seemed like a [fun](
 
 funcy.js seeks to provide a functional way of defining web components, very much akin to [react](https://reactjs.org/)  [functional components](https://reactjs.org/docs/components-and-props.html#function-and-class-components) with [hooks](https://reactjs.org/docs/hooks-intro.html).
 
-the hooks functionality in funcyjs is powered by: [hookuspocus](https://github.com/michael-klein/hookuspocus/edit/master/README.md)
+the hooks functionality in funcyjs is powered by: [hookuspocus](https://github.com/michael-klein/hookuspocus/blob/master/README.md)
 
 Here's a simple TODO app implemented with funcyjs: https://codepen.io/michael-klein/pen/xmQZBx
 
